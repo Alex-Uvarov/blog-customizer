@@ -12,7 +12,7 @@ import {
 	fontSizeOptions,
 } from 'src/constants/articleProps';
 import styles from './ArticleParamsForm.module.scss';
-import { useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import clsx from 'clsx';
 import { RadioGroup } from 'src/ui/radio-group';
 import { Separator } from 'src/ui/separator';
@@ -26,24 +26,51 @@ export const ArticleParamsForm = ({
 	articleState,
 	setArticleState,
 }: ArticleParamsFormProps) => {
-	const [isOpen, setIsOpen] = useState(false);
+	const [isFormOpen, setIsOpen] = useState(false);
 	const [wantedArticleState, setWantedArticleState] = useState(articleState);
+
+	const rootRef = useRef<HTMLDivElement | null>(null);
+
+	const handleReset = () => {
+		setWantedArticleState(defaultArticleState);
+		setArticleState(defaultArticleState);
+	};
+
+	useEffect(() => {
+		if (!isFormOpen) return;
+		const handleOverlay = (event: MouseEvent) => {
+			if (
+				event.target instanceof Node &&
+				rootRef.current &&
+				!rootRef.current.contains(event.target)
+			) {
+				setIsOpen(false);
+			}
+		};
+
+		window.addEventListener('mousedown', handleOverlay);
+		return () => {
+			window.removeEventListener('mousedown', handleOverlay);
+		};
+	}, [isFormOpen, rootRef]);
+
 	return (
-		<>
+		<div ref={rootRef}>
 			<ArrowButton
-				isOpen={isOpen}
+				isOpen={isFormOpen}
 				onClick={() => {
-					setIsOpen(!isOpen);
+					setIsOpen(!isFormOpen);
 				}}
 			/>
 			<aside
-				className={clsx(styles.container, isOpen && styles.container_open)}>
+				className={clsx(styles.container, isFormOpen && styles.container_open)}>
 				<form
 					className={styles.form}
 					onSubmit={(e) => {
 						e.preventDefault();
 						setArticleState(wantedArticleState);
-					}}>
+					}}
+					onReset={handleReset}>
 					<Text as='h2' size={31} weight={800} uppercase>
 						Задайте параметры
 					</Text>
@@ -107,19 +134,11 @@ export const ArticleParamsForm = ({
 						}}></Select>
 
 					<div className={styles.bottomContainer}>
-						<Button
-							title='Сбросить'
-							htmlType='reset'
-							type='clear'
-							onClick={() => {
-								setWantedArticleState(defaultArticleState);
-								setArticleState(defaultArticleState);
-							}}
-						/>
+						<Button title='Сбросить' htmlType='reset' type='clear' />
 						<Button title='Применить' htmlType='submit' type='apply' />
 					</div>
 				</form>
 			</aside>
-		</>
+		</div>
 	);
 };
